@@ -1,0 +1,191 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: CIS AWS Foundations Benchmark Metric Alarms
+Parameters:
+  AlarmNotificationTopicARN:
+    Description: SNS topic to send alerts to
+    Type: String
+  CloudtrailLogGroupName:
+    Description: Name of the Cloudtrail log group
+    Type: String
+Resources:
+#===============================================================================================================================
+# MetricFilter and CloudWatch Alarm Section
+#===============================================================================================================================
+
+# ------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.1   Ensure a log metric filter and alarm exist for unauthorized API calls (Scored)
+# ------------------------------------------------------------------------------------------------------------------------------------
+  UnauthorizedApiCallsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CIS-Unauthorized Activity Attempt
+      AlarmDescription: Alarm if Multiple unauthorized actions or logins attempted
+      MetricName: UnauthorizedAttemptCount
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: '1'
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  UnauthorizedApiCallsFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.errorCode = "*UnauthorizedOperation") ||
+          ($.errorCode = "AccessDenied*")
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: UnauthorizedAttemptCount
+
+# ------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.2   Ensure a log metric filter and alarm exist for Management Console sign-in without MFA (Scored)
+# ------------------------------------------------------------------------------------------------------------------------------------
+  NoMfaConsoleLoginsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CIS-Console Signin Without MFA
+      AlarmDescription: Alarm if there is a Management Console sign-in without MFA
+      MetricName: ConsoleSigninWithoutMFA
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  NoMfaConsoleLoginsFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventName = "ConsoleLogin") &&
+          ($.additionalEventData.MFAUsed != "Yes")
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: ConsoleSigninWithoutMFA
+
+# ------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 1.1   Avoid the use of the "root" account (Scored)
+# CIS AWS Foundations Benchmark - 3.3   Ensure a log metric filter and alarm exist for usage of "root" account  (Scored)
+# ------------------------------------------------------------------------------------------------------------------------------------
+  RootAccountLoginsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+    - NoMfaConsoleLoginsAlarm
+    Properties:
+      AlarmName: CIS-IAM Root Activity
+      AlarmDescription: Alarm if a 'root' user uses the account
+      MetricName: RootUserEventCount
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  RootAccountLoginsFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          $.userIdentity.type = "Root" &&
+          $.userIdentity.invokedBy NOT EXISTS &&
+          $.eventType != "AwsServiceEvent"
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: RootUserEventCount
+
+#
+# TODO add back in 3.4 and 3.5 when we have a function to format events to alarm events
+# 
+
+# --------------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.6 Ensure a log metric filter and alarm exist for AWS Management Console authentication failures (Scored)
+# --------------------------------------------------------------------------------------------------------------------------------------------
+  FailedConsoleLoginsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+    - RootAccountLoginsAlarm
+    Properties:
+      AlarmName: CIS-Console Login Failures
+      AlarmDescription: Alarm if there are AWS Management Console authentication failures
+      MetricName: ConsoleLoginFailures
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: '300'
+      EvaluationPeriods: '1'
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  FailedConsoleLoginsFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventName = ConsoleLogin) &&
+          ($.errorMessage = "Failed authentication")
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: ConsoleLoginFailures
+
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.7   Ensure a log metric filter and alarm exist for disabling or scheduled deletion of customer created CMKs (Scored)
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+  DisabledOrDeletedCmksAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+    - FailedConsoleLoginsAlarm
+    Properties:
+      AlarmName: CIS-KMS Key Disabled or Scheduled for Deletion
+      AlarmDescription: Alarm if customer created CMKs get disabled or scheduled for
+        deletion
+      MetricName: KMSCustomerKeyDeletion
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  DisabledOrDeletedCmksFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventSource = kms.amazonaws.com) &&
+          (($.eventName=DisableKey) || ($.eventName=ScheduleKeyDeletion))
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: KMSCustomerKeyDeletion
+
+#
+# TODO add back in 3.8, 3.9,, 3.10/11/12/13/14 when we have a function to convert to CW events
+# 
