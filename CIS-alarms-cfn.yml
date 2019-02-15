@@ -24,7 +24,7 @@ Resources:
       MetricName: UnauthorizedAttemptCount
       Namespace: CloudTrailMetrics
       Statistic: Sum
-      Period: 60
+      Period: 300
       EvaluationPeriods: '1'
       Threshold: 1
       TreatMissingData: notBreaching
@@ -56,7 +56,7 @@ Resources:
       MetricName: ConsoleSigninWithoutMFA
       Namespace: CloudTrailMetrics
       Statistic: Sum
-      Period: 60
+      Period: 300
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
@@ -91,7 +91,7 @@ Resources:
       MetricName: RootUserEventCount
       Namespace: CloudTrailMetrics
       Statistic: Sum
-      Period: 60
+      Period: 300
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
@@ -113,9 +113,53 @@ Resources:
         MetricNamespace: CloudTrailMetrics
         MetricName: RootUserEventCount
 
-#
-# TODO add back in 3.4 and 3.5 when we have a function to format events to alarm events
-# 
+# --------------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.4 Ensure a log metric filter and alarm exist for IAM policy changes (Scored)
+# --------------------------------------------------------------------------------------------------------------------------------------------
+  IAMPolicyChangesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+    - RootAccountLoginsAlarm
+    Properties:
+      AlarmName: CIS-IAM IAM Policy Changes
+      AlarmDescription: Alarm if an IAM policy changes
+      MetricName: IAMPolicyChangeEventCount
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  IAMPolicyChangesFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventName=DeleteGroupPolicy) ||
+          ($.eventName=DeleteRolePolicy) ||
+          ($.eventName=DeleteUserPolicy) ||
+          ($.eventName=PutGroupPolicy) ||
+          ($.eventName=PutRolePolicy) ||
+          ($.eventName=PutUserPolicy) ||
+          ($.eventName=CreatePolicy) ||
+          ($.eventName=DeletePolicy) ||
+          ($.eventName=CreatePolicyVersion) ||
+          ($.eventName=DeletePolicyVersion) ||
+          ($.eventName=AttachRolePolicy) ||
+          ($.eventName=DetachRolePolicy) ||
+          ($.eventName=AttachUserPolicy) ||
+          ($.eventName=DetachUserPolicy) ||
+          ($.eventName=AttachGroupPolicy) ||
+          ($.eventName=DetachGroupPolicy)
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: IAMPolicyChangeEventCount
 
 # --------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.6 Ensure a log metric filter and alarm exist for AWS Management Console authentication failures (Scored)
@@ -185,7 +229,3 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: KMSCustomerKeyDeletion
-
-#
-# TODO add back in 3.8, 3.9,, 3.10/11/12/13/14 when we have a function to convert to CW events
-# 
