@@ -86,7 +86,7 @@ Resources:
     DependsOn:
     - NoMfaConsoleLoginsAlarm
     Properties:
-      AlarmName: CIS-IAM Root Activity
+      AlarmName: CIS-Root Activity
       AlarmDescription: Alarm if a 'root' user uses the account
       MetricName: RootUserEventCount
       Namespace: CloudTrailMetrics
@@ -118,10 +118,8 @@ Resources:
 # --------------------------------------------------------------------------------------------------------------------------------------------
   IAMPolicyChangesAlarm:
     Type: AWS::CloudWatch::Alarm
-    DependsOn:
-    - RootAccountLoginsAlarm
     Properties:
-      AlarmName: CIS-IAM IAM Policy Changes
+      AlarmName: CIS-IAM Policy Changes
       AlarmDescription: Alarm if an IAM policy changes
       MetricName: IAMPolicyChangeEventCount
       Namespace: CloudTrailMetrics
@@ -160,6 +158,41 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: IAMPolicyChangeEventCount
+
+# --------------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.5 Ensure a log metric filter and alarm exist for CloudTrail configuration changes (Scored)
+# --------------------------------------------------------------------------------------------------------------------------------------------
+  CloudtrailConfigChangesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CIS-Cloudtrail Config Changes
+      AlarmDescription: Alarm if the configuration for Cloudtrail changes
+      MetricName: CloudtrailConfigChangeEventCount
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  CloudtrailConfigChangesFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventName = CreateTrail) ||
+          ($.eventName = UpdateTrail) ||
+          ($.eventName = DeleteTrail) || 
+          ($.eventName = StartLogging) ||
+          ($.eventName = StopLogging)
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: CloudtrailConfigChangeEventCount
 
 # --------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.6 Ensure a log metric filter and alarm exist for AWS Management Console authentication failures (Scored)
@@ -229,3 +262,43 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: KMSCustomerKeyDeletion
+
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.8 Ensure a log metric filter and alarm exist for S3 bucket policy changes (Scored)
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+  S3BucketPolicyChangeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CIS-S3 Bucket Policy Changed
+      AlarmDescription: Alarm if any S3 bucket policies are changed
+      MetricName: S3BucketPolicyChanges
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  S3BucketPolicyChangeFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventSource = s3.amazonaws.com) &&
+          (($.eventName = PutBucketAcl) || 
+            ($.eventName = PutBucketPolicy) || 
+            ($.eventName = PutBucketCors) || 
+            ($.eventName = PutBucketLifecycle) || 
+            ($.eventName = PutBucketReplication) || 
+            ($.eventName = DeleteBucketPolicy) || 
+            ($.eventName = DeleteBucketCors) || 
+            ($.eventName = DeleteBucketLifecycle) || 
+            ($.eventName = DeleteBucketReplication))
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: S3BucketPolicyChanges
