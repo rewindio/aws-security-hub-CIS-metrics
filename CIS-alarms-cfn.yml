@@ -302,3 +302,224 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: S3BucketPolicyChanges
+
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.9 Ensure a log metric filter and alarm exist for AWS Config configuration changes (Scored)
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+  AWSConfigConfigurationChangeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CIS-AWS Config Configuration has changed
+      AlarmDescription: Alarm if the configuration for AWS Config changes
+      MetricName: AWSConfigConfigurationChanges
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  AWSConfigConfigurationChangeFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventSource = config.amazonaws.com) && 
+          (($.eventName=StopConfigurationRecorder)||
+           ($.eventName=DeleteDeliveryChannel)||
+           ($.eventName=PutDeliveryChannel)||
+           ($.eventName=PutConfigurationRecorder))
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: AWSConfigConfigurationChanges
+
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.10 Ensure a log metric filter and alarm exist for security group changes (Scored)
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+  SecurityGroupChangeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CIS-Security Groups Have Changed
+      AlarmDescription: Alarm if there are any changes to security groups
+      MetricName: SecurityGroupChanges
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  SecurityGroupChangeFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventName = AuthorizeSecurityGroupIngress) || 
+          ($.eventName = AuthorizeSecurityGroupEgress) || 
+          ($.eventName = RevokeSecurityGroupIngress) || 
+          ($.eventName = RevokeSecurityGroupEgress) || 
+          ($.eventName = CreateSecurityGroup) || 
+          ($.eventName = DeleteSecurityGroup)
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: SecurityGroupChanges
+
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.11 Ensure a log metric filter and alarm exist for changes to Network Access Control Lists (NACL) (Scored)
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+  NACLChangeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CIS-NACLs Have Changed
+      AlarmDescription: Alarm if there are any changes to Network ACLs (NACLs)
+      MetricName: NACLChanges
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  NACLChangeFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventName = CreateNetworkAcl) || 
+          ($.eventName = CreateNetworkAclEntry) || 
+          ($.eventName = DeleteNetworkAcl) || 
+          ($.eventName = DeleteNetworkAclEntry) || 
+          ($.eventName = ReplaceNetworkAclEntry) || 
+          ($.eventName = ReplaceNetworkAclAssociation)
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: NACLChanges
+
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.12 Ensure a log metric filter and alarm exist for changes to network gateways (Scored)
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+  NetworkGatewayChangeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CIS-Network Gateways Have Changed
+      AlarmDescription: Alarm if there are any changes to network gateways
+      MetricName: NetworkGatewayChanges
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  NetworkGatewayChangeFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventName = CreateCustomerGateway) || 
+          ($.eventName = DeleteCustomerGateway) || 
+          ($.eventName = AttachInternetGateway) || 
+          ($.eventName = CreateInternetGateway) || 
+          ($.eventName = DeleteInternetGateway) || 
+          ($.eventName = DetachInternetGateway)
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: NetworkGatewayChanges
+
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.13 Ensure a log metric filter and alarm exist for route table changes (Scored)
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+  RouteTableChangeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CIS-Route Tables Have Changed
+      AlarmDescription: Alarm if there are any changes to route tables
+      MetricName: RouteTableChanges
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  RouteTableChangeFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventName = CreateRoute) || 
+          ($.eventName = CreateRouteTable) || 
+          ($.eventName = ReplaceRoute) || 
+          ($.eventName = ReplaceRouteTableAssociation) || 
+          ($.eventName = DeleteRouteTable) || 
+          ($.eventName = DeleteRoute) || 
+          ($.eventName = DisassociateRouteTable)
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: RouteTableChanges
+
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+# CIS AWS Foundations Benchmark - 3.14 Ensure a log metric filter and alarm exist for VPC changes (Scored)
+# -------------------------------------------------------------------------------------------------------------------------------------------------------
+  VPCChangeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: CIS-VPC Has Changed
+      AlarmDescription: Alarm if there are any changes to any VPCs
+      MetricName: VPCChanges
+      Namespace: CloudTrailMetrics
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmNotificationTopicARN
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+  VPCChangeFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CloudtrailLogGroupName
+      FilterPattern: |-
+        {
+          ($.eventName = CreateVpc) || 
+          ($.eventName = DeleteVpc) || 
+          ($.eventName = ModifyVpcAttribute) || 
+          ($.eventName = AcceptVpcPeeringConnection) || 
+          ($.eventName = CreateVpcPeeringConnection) || 
+          ($.eventName = DeleteVpcPeeringConnection) || 
+          ($.eventName = RejectVpcPeeringConnection) || 
+          ($.eventName = AttachClassicLinkVpc) || 
+          ($.eventName = DetachClassicLinkVpc) || 
+          ($.eventName = DisableVpcClassicLink) || 
+          ($.eventName = EnableVpcClassicLink)
+        }
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: CloudTrailMetrics
+        MetricName: VPCChanges
