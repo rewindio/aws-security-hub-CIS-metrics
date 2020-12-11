@@ -3,10 +3,10 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: CIS AWS Foundations Benchmark Metric Alarms
 Parameters:
   AlarmNotificationTopicARN:
-    Description: SNS topic to send alerts to
+    Default: ARN of SNS topic to send alerts to
     Type: String
   CloudtrailLogGroupName:
-    Description: Name of the Cloudtrail log group
+    Default: Name (not ARN) of the Cloudtrail log group
     Type: String
 Resources:
 #===============================================================================================================================
