@@ -27,7 +27,7 @@ Resources:
       Namespace: CloudTrailMetrics
       Statistic: Sum
       Period: 300
-      EvaluationPeriods: '1'
+      EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
       AlarmActions:
@@ -209,8 +209,8 @@ Resources:
       MetricName: ConsoleLoginFailures
       Namespace: CloudTrailMetrics
       Statistic: Sum
-      Period: '300'
-      EvaluationPeriods: '1'
+      Period: 300
+      EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
       AlarmActions:
