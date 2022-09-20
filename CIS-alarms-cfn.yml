@@ -27,7 +27,7 @@ Resources:
       Namespace: CloudTrailMetrics
       Statistic: Sum
       Period: 300
-      EvaluationPeriods: '1'
+      EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
       AlarmActions:
@@ -46,6 +46,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: UnauthorizedAttemptCount
+  UnauthorizedApiCallsQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-Unauthorized Activity Attempt
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message | 
+          sort @timestamp desc | 
+          filter errorCode == '*UnauthorizedOperation' or errorCode == 'AccessDenied*'
 
 # ------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.2   Ensure a log metric filter and alarm exist for Management Console sign-in without MFA (Scored)
@@ -78,6 +88,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: ConsoleSigninWithoutMFA
+  NoMfaConsoleLoginsQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-Console Signin Without MFA
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message | 
+          sort @timestamp desc | 
+          filter eventName == 'ConsoleLogin' and responseElements.ConsoleLogin == 'Success' and additionalEventData.MFAUsed != 'Yes'
 
 # ------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 1.1   Avoid the use of the "root" account (Scored)
@@ -114,6 +134,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: RootUserEventCount
+  RootAccountLoginsQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-Root Activity
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message | 
+          sort @timestamp desc | 
+          filter userIdentity.type == 'Root' and eventType != 'AwsServiceEvent'
 
 # --------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.4 Ensure a log metric filter and alarm exist for IAM policy changes (Scored)
@@ -160,6 +190,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: IAMPolicyChangeEventCount
+  IAMPolicyChangesQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-IAM Policy Changes
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message |
+          sort @timestamp desc |
+          filter eventName in ['AttachGroupPolicy', 'AttachRolePolicy', 'AttachUserPolicy', 'CreatePolicy', 'CreatePolicyVersion', 'DeleteGroupPolicy', 'DeletePolicy', 'DeletePolicyVersion', 'DeleteRolePolicy', 'DeleteUserPolicy', 'DetachGroupPolicy', 'DetachRolePolicy', 'DetachUserPolicy', 'PutGroupPolicy', 'PutRolePolicy', 'PutUserPolicy']
 
 # --------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.5 Ensure a log metric filter and alarm exist for CloudTrail configuration changes (Scored)
@@ -195,6 +235,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: CloudtrailConfigChangeEventCount
+  CloudtrailConfigChangesQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-Cloudtrail Config Changes
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message |
+          sort @timestamp desc |
+          filter eventName in ['CreateTrail', 'DeleteTrail', 'StartLogging', 'StopLogging', 'UpdateTrail']
 
 # --------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.6 Ensure a log metric filter and alarm exist for AWS Management Console authentication failures (Scored)
@@ -209,8 +259,8 @@ Resources:
       MetricName: ConsoleLoginFailures
       Namespace: CloudTrailMetrics
       Statistic: Sum
-      Period: '300'
-      EvaluationPeriods: '1'
+      Period: 300
+      EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
       AlarmActions:
@@ -229,6 +279,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: ConsoleLoginFailures
+  FailedConsoleLoginsQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-Console Login Failures
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message | 
+          sort @timestamp desc | 
+          filter eventName == 'ConsoleLogin' and errorMessage == 'Failed authentication'
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.7   Ensure a log metric filter and alarm exist for disabling or scheduled deletion of customer created CMKs (Scored)
@@ -264,6 +324,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: KMSCustomerKeyDeletion
+  DisabledOrDeletedCmksQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-KMS Key Disabled or Scheduled for Deletion
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message |
+          sort @timestamp desc |
+          filter eventSource == 'kms.amazonaws.com' and eventName in ['DisableKey', 'ScheduleKeyDeletion']
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.8 Ensure a log metric filter and alarm exist for S3 bucket policy changes (Scored)
@@ -304,6 +374,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: S3BucketPolicyChanges
+  S3BucketPolicyChangeQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-S3 Bucket Policy Changed
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message |
+          sort @timestamp desc |
+          filter eventSource = 's3.amazonaws.com' and eventName in ['DeleteBucketCors', 'DeleteBucketLifecycle', 'DeleteBucketPolicy', 'DeleteBucketReplication', 'PutBucketAcl', 'PutBucketCors', 'PutBucketLifecycle', 'PutBucketPolicy', 'PutBucketReplication']
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.9 Ensure a log metric filter and alarm exist for AWS Config configuration changes (Scored)
@@ -339,6 +419,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: AWSConfigConfigurationChanges
+  AWSConfigConfigurationChangeQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-AWS Config Configuration has changed
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message |
+          sort @timestamp desc |
+          filter eventSource = 'config.amazonaws.com' and eventName in ['DeleteDeliveryChannel', 'StopConfigurationRecorder', 'PutConfigurationRecorder', 'PutDeliveryChannel']
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.10 Ensure a log metric filter and alarm exist for security group changes (Scored)
@@ -375,6 +465,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: SecurityGroupChanges
+  SecurityGroupChangeQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-Security Groups Have Changed
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message |
+          sort @timestamp desc |
+          filter eventName in ['AuthorizeSecurityGroupIngress', 'AuthorizeSecurityGroupEgress', 'CreateSecurityGroup', 'DeleteSecurityGroup', 'RevokeSecurityGroupIngress', 'RevokeSecurityGroupEgress']
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.11 Ensure a log metric filter and alarm exist for changes to Network Access Control Lists (NACL) (Scored)
@@ -411,6 +511,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: NACLChanges
+  NACLChangeQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-NACLs Have Changed
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message |
+          sort @timestamp desc |
+          filter eventName in ['CreateNetworkAcl', 'CreateNetworkAclEntry', 'DeleteNetworkAcl', 'DeleteNetworkAclEntry', 'ReplaceNetworkAclEntry', 'ReplaceNetworkAclAssociation']
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.12 Ensure a log metric filter and alarm exist for changes to network gateways (Scored)
@@ -447,6 +557,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: NetworkGatewayChanges
+  NetworkGatewayChangeQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-Network Gateways Have Changed
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message |
+          sort @timestamp desc |
+          filter eventName in ['AttachInternetGateway', 'CreateCustomerGateway', 'CreateInternetGateway', 'DeleteCustomerGateway', 'DeleteInternetGateway', 'DetachInternetGateway']
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.13 Ensure a log metric filter and alarm exist for route table changes (Scored)
@@ -484,6 +604,16 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: RouteTableChanges
+  RouteTableChangeQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-Route Tables Have Changed
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message |
+          sort @timestamp desc |
+          filter eventName in ['CreateRoute', 'CreateRouteTable', 'DeleteRoute', 'DeleteRouteTable', 'DisassociateRouteTable', 'ReplaceRoute', 'ReplaceRouteTableAssociation']
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------
 # CIS AWS Foundations Benchmark - 3.14 Ensure a log metric filter and alarm exist for VPC changes (Scored)
@@ -525,3 +655,13 @@ Resources:
       - MetricValue: '1'
         MetricNamespace: CloudTrailMetrics
         MetricName: VPCChanges
+  VPCChangeQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: CIS-Alarms/CIS-VPC Has Changed
+      LogGroupNames: 
+        - !Ref CloudtrailLogGroupName
+      QueryString: |-
+        fields @timestamp, @message |
+          sort @timestamp desc |
+          filter eventName in ['AcceptVpcPeeringConnection', 'AttachClassicLinkVpc', 'CreateVpc', 'CreateVpcPeeringConnection', 'DeleteVpc', 'DeleteVpcPeeringConnection', 'DetachClassicLinkVpc', 'DisableVpcClassicLink', 'EnableVpcClassicLink', 'ModifyVpcAttribute', 'RejectVpcPeeringConnection']
