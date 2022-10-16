@@ -16,7 +16,9 @@ Resources:
       DefinitionSubstitutions:
         EpochFunctionArn: !GetAtt EpochFunction.Arn
         LogQueryFunctionArn: !GetAtt LogQueryFunction.Arn
+        LogProcessorFunctionArn: !GetAtt LogProcessorFunction.Arn
         LogGroupName: !Ref LogGroupName
+        DDBAuditTableName: !Ref AuditTable
       Events:
         EBRule:
           Type: EventBridgeRule
@@ -48,6 +50,8 @@ Resources:
             FunctionName: !Ref EpochFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref LogQueryFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref LogProcessorFunction
 
   EpochFunction:
     Type: AWS::Serverless::Function
@@ -68,6 +72,31 @@ Resources:
       Timeout: 300
       Architectures:
         - x86_64
+
+  LogProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/log-processor/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 300
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref AuditTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref AuditTable
+
+  AuditTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: EventId
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
 
   CloudWatchLogsPolicy:
     Type: 'AWS::IAM::Policy'

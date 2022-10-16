@@ -256,23 +256,47 @@
             "InputPath": "$",
             "ResultPath": "$.logs",
             "Parameters": {
-              "CloudWatchLogsLogGroupName": "${LogGroupName}",
-              "alarmName.$": "$.detail.alarmName",
-              "epoch.$": "$.epoch",
-              "query.$": "$.query"
+                "CloudWatchLogsLogGroupName": "${LogGroupName}",
+                "alarmName.$": "$.detail.alarmName",
+                "epoch.$": "$.epoch",
+                "query.$": "$.query"
             },
             "Retry": [
-              {
-                "ErrorEquals": [
-                  "States.TaskFailed"
-                ],
-                "IntervalSeconds": 300,
-                "MaxAttempts": 1,
-                "BackoffRate": 1
-              }
+                {
+                    "ErrorEquals": [
+                        "States.TaskFailed"
+                    ],
+                    "IntervalSeconds": 300,
+                    "MaxAttempts": 1,
+                    "BackoffRate": 1
+                }
+            ],
+            "Next": "LogProcessor Function"
+        },
+        "LogProcessor Function": {
+            "Type": "Task",
+            "Resource": "${LogProcessorFunctionArn}",
+            "InputPath": "$",
+            "ResultPath": "$",
+            "Parameters": {
+                "DDBAuditTableName": "${DDBAuditTableName}",
+                "alarmName.$": "$.detail.alarmName",
+                "epoch.$": "$.epoch",
+                "query.$": "$.query",
+                "logs.$": "$.logs"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "States.TaskFailed"
+                    ],
+                    "IntervalSeconds": 300,
+                    "MaxAttempts": 1,
+                    "BackoffRate": 1
+                }
             ],
             "End": true
-          },
+        },
         "Improper Input Fail": {
             "Type": "Fail",
             "Error": "Improper Input Fail",
