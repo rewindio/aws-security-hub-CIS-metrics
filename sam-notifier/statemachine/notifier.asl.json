@@ -1,0 +1,44 @@
+{
+    "Comment": "A state machine for CIS Alarm notifer.",
+    "StartAt": "Validate Choice",
+    "States": {
+        "Validate Choice": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "And": [
+                        {
+                            "Variable": "$.detail.alarmName",
+                            "IsPresent": true
+                        }
+                    ],
+                    "Next": "Epoch Converter Function",
+                    "Comment": "Alarm Name Found"
+                }
+            ],
+            "Default": "Improper Input Fail"
+        },
+        "Epoch Converter Function": {
+            "Type": "Task",
+            "Resource": "${EpochFunctionArn}",
+            "InputPath": "$",
+            "ResultPath": "$.epoch",
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "States.TaskFailed"
+                    ],
+                    "IntervalSeconds": 10,
+                    "MaxAttempts": 1,
+                    "BackoffRate": 1
+                }
+            ],
+            "End": true
+        },
+        "Improper Input Fail": {
+            "Type": "Fail",
+            "Error": "Improper Input Fail",
+            "Cause": "Missing Alert Name"
+        }
+    }
+}
