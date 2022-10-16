@@ -126,7 +126,7 @@
         },
         "CIS-Unauthorized Activity Attempt": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter errorCode == '*UnauthorizedOperation' or errorCode == 'AccessDenied*'",
@@ -135,7 +135,7 @@
         },
         "CIS-Console Signin Without MFA": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName == 'ConsoleLogin' and responseElements.ConsoleLogin == 'Success' and additionalEventData.MFAUsed != 'Yes'",
@@ -144,7 +144,7 @@
         },
         "CIS-Root Activity": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter userIdentity.type == 'Root' and eventType != 'AwsServiceEvent'",
@@ -153,7 +153,7 @@
         },
         "CIS-IAM Policy Changes": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['AttachGroupPolicy', 'AttachRolePolicy', 'AttachUserPolicy', 'CreatePolicy', 'CreatePolicyVersion', 'DeleteGroupPolicy', 'DeletePolicy', 'DeletePolicyVersion', 'DeleteRolePolicy', 'DeleteUserPolicy', 'DetachGroupPolicy', 'DetachRolePolicy', 'DetachUserPolicy', 'PutGroupPolicy', 'PutRolePolicy', 'PutUserPolicy']",
@@ -162,7 +162,7 @@
         },
         "CIS-Cloudtrail Config Changes": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['CreateTrail', 'DeleteTrail', 'StartLogging', 'StopLogging', 'UpdateTrail']",
@@ -171,7 +171,7 @@
         },
         "CIS-Console Login Failures": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName == 'ConsoleLogin' and errorMessage == 'Failed authentication'",
@@ -180,7 +180,7 @@
         },
         "CIS-KMS Key Disabled or Scheduled for Deletion": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventSource == 'kms.amazonaws.com' and eventName in ['DisableKey', 'ScheduleKeyDeletion']",
@@ -189,7 +189,7 @@
         },
         "CIS-S3 Bucket Policy Changed": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventSource = 's3.amazonaws.com' and eventName in ['DeleteBucketCors', 'DeleteBucketLifecycle', 'DeleteBucketPolicy', 'DeleteBucketReplication', 'PutBucketAcl', 'PutBucketCors', 'PutBucketLifecycle', 'PutBucketPolicy', 'PutBucketReplication']",
@@ -198,7 +198,7 @@
         },
         "CIS-AWS Config Configuration has changed": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventSource = 'config.amazonaws.com' and eventName in ['DeleteDeliveryChannel', 'StopConfigurationRecorder', 'PutConfigurationRecorder', 'PutDeliveryChannel']",
@@ -207,7 +207,7 @@
         },
         "CIS-Security Groups Have Changed": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventSource = 'config.amazonaws.com' and eventName in ['DeleteDeliveryChannel', 'StopConfigurationRecorder', 'PutConfigurationRecorder', 'PutDeliveryChannel']",
@@ -216,7 +216,7 @@
         },
         "CIS-NACLs Have Changed": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['CreateNetworkAcl', 'CreateNetworkAclEntry', 'DeleteNetworkAcl', 'DeleteNetworkAclEntry', 'ReplaceNetworkAclEntry', 'ReplaceNetworkAclAssociation']",
@@ -225,7 +225,7 @@
         },
         "CIS-Network Gateways Have Changed": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['AttachInternetGateway', 'CreateCustomerGateway', 'CreateInternetGateway', 'DeleteCustomerGateway', 'DeleteInternetGateway', 'DetachInternetGateway']",
@@ -234,7 +234,7 @@
         },
         "CIS-Route Tables Have Changed": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['CreateRoute', 'CreateRouteTable', 'DeleteRoute', 'DeleteRouteTable', 'DisassociateRouteTable', 'ReplaceRoute', 'ReplaceRouteTableAssociation']",
@@ -243,13 +243,36 @@
         },
         "CIS-VPC Has Changed": {
             "Type": "Pass",
-            "End": true,
+            "Next": "GetLogQuery Function",
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['AcceptVpcPeeringConnection', 'AttachClassicLinkVpc', 'CreateVpc', 'CreateVpcPeeringConnection', 'DeleteVpc', 'DeleteVpcPeeringConnection', 'DetachClassicLinkVpc', 'DisableVpcClassicLink', 'EnableVpcClassicLink', 'ModifyVpcAttribute', 'RejectVpcPeeringConnection']",
                 "severity": "LOW"
             }
         },
+        "GetLogQuery Function": {
+            "Type": "Task",
+            "Resource": "${LogQueryFunctionArn}",
+            "InputPath": "$",
+            "ResultPath": "$.logs",
+            "Parameters": {
+              "CloudWatchLogsLogGroupName": "${LogGroupName}",
+              "alarmName.$": "$.detail.alarmName",
+              "epoch.$": "$.epoch",
+              "query.$": "$.query"
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "States.TaskFailed"
+                ],
+                "IntervalSeconds": 300,
+                "MaxAttempts": 1,
+                "BackoffRate": 1
+              }
+            ],
+            "End": true
+          },
         "Improper Input Fail": {
             "Type": "Fail",
             "Error": "Improper Input Fail",

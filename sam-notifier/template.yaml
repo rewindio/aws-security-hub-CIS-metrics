@@ -15,6 +15,7 @@ Resources:
       DefinitionUri: statemachine/notifier.asl.json
       DefinitionSubstitutions:
         EpochFunctionArn: !GetAtt EpochFunction.Arn
+        LogQueryFunctionArn: !GetAtt LogQueryFunction.Arn
         LogGroupName: !Ref LogGroupName
       Events:
         EBRule:
@@ -45,6 +46,8 @@ Resources:
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref EpochFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref LogQueryFunction
 
   EpochFunction:
     Type: AWS::Serverless::Function
@@ -53,6 +56,16 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.9
       Timeout: 5
+      Architectures:
+        - x86_64
+
+  LogQueryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/log-query/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 300
       Architectures:
         - x86_64
 
@@ -78,6 +91,7 @@ Resources:
               - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group::log-stream:*'
       Roles:
         - !Ref StateMachineRole
+        - !Ref LogQueryFunctionRole
 
 Outputs:
   StateMachineArn:
