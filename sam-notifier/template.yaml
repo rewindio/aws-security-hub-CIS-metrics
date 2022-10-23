@@ -7,6 +7,16 @@ Parameters:
   LogGroupName:
     Type: String
     Description: Name of the CloudWatch Logs log group used CloudTrail
+  JiraUrl:
+    Type: String
+    Description: Jira REST API URL (ex. https://<org-name>.atlassian.net/rest/api/2)
+  JiraProjectKey:
+    Type: String
+    Description: Jira project key
+  JiraAuthToken:
+    Type: String
+    Description: Jira Basic Auth token (https://developer.atlassian.com/cloud/jira/platform/basic-auth-for-rest-apis/)
+    NoEcho: true
 
 Resources:
   StateMachine:
@@ -17,8 +27,12 @@ Resources:
         EpochFunctionArn: !GetAtt EpochFunction.Arn
         LogQueryFunctionArn: !GetAtt LogQueryFunction.Arn
         LogProcessorFunctionArn: !GetAtt LogProcessorFunction.Arn
+        CreateTicketFunctionArn: !GetAtt CreateTicketFunction.Arn
         LogGroupName: !Ref LogGroupName
         DDBAuditTableName: !Ref AuditTable
+        JiraUrl: !Ref JiraUrl
+        JiraProjectKey: !Ref JiraProjectKey
+        JiraAuthTokenSecretArn: !Ref JiraAuthTokenSecret
       Events:
         EBRule:
           Type: EventBridgeRule
@@ -52,6 +66,8 @@ Resources:
             FunctionName: !Ref LogQueryFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref LogProcessorFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref CreateTicketFunction
 
   EpochFunction:
     Type: AWS::Serverless::Function
@@ -88,6 +104,23 @@ Resources:
         - DynamoDBReadPolicy:
             TableName: !Ref AuditTable
 
+  CreateTicketFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/create-ticket/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 300
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref AuditTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref AuditTable
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref JiraAuthTokenSecret
+
   AuditTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
@@ -97,6 +130,12 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
+
+  JiraAuthTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Description: String
+      SecretString: !Ref JiraAuthToken
 
   CloudWatchLogsPolicy:
     Type: 'AWS::IAM::Policy'
@@ -126,3 +165,6 @@ Outputs:
   StateMachineArn:
     Description: "State machine ARN"
     Value: !Ref StateMachine
+  JiraApiTokenSecret:
+    Description: "Secrets Manager Secret with value of JiraAuthToken"
+    Value: !Ref JiraAuthTokenSecret

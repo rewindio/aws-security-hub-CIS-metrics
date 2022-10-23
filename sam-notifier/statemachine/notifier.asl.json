@@ -277,7 +277,7 @@
             "Type": "Task",
             "Resource": "${LogProcessorFunctionArn}",
             "InputPath": "$",
-            "ResultPath": "$",
+            "ResultPath": "$.events",
             "Parameters": {
                 "DDBAuditTableName": "${DDBAuditTableName}",
                 "alarmName.$": "$.detail.alarmName",
@@ -295,6 +295,30 @@
                     "BackoffRate": 1
                 }
             ],
+            "Next": "EventsMap"
+        },
+        "EventsMap": {
+            "Type": "Map",
+            "InputPath": "$",
+            "ItemsPath": "$.events.events",
+            "Parameters": {
+                "DDBAuditTableName": "${DDBAuditTableName}",
+                "JiraUrl": "${JiraUrl}",
+                "JiraProjectKey": "${JiraProjectKey}",
+                "JiraAuthTokenSecretArn": "${JiraAuthTokenSecretArn}",
+                "alarmName.$": "$.detail.alarmName",
+                "EventId.$": "$$.Map.Item.Value"
+            },
+            "Iterator": {
+                "StartAt": "CreateTicketFunction",
+                "States": {
+                    "CreateTicketFunction": {
+                        "Type": "Task",
+                        "Resource": "${CreateTicketFunctionArn}",
+                        "End": true
+                    }
+                }
+            },
             "End": true
         },
         "Improper Input Fail": {
