@@ -18,9 +18,12 @@ def lambda_handler(event, context):
 
     logger.info(f"Event time: {alarm_time}")
 
-    start = round((alarm_time - timedelta(minutes=30)).timestamp())
-    end = round(alarm_time.timestamp())
+    start_time = alarm_time - timedelta(minutes=30)
+    start_timestamp = round(start_time.timestamp())
+    end_time = datetime.datetime.now()
+    end_timestamp = round(end_time.timestamp())
 
-    logger.info(f"Start timestamp ({start}), end timetamps ({end}).")
+    logger.info(f"Start time ({start_time}), end time ({end_time}).")
+    logger.info(f"Start timestamp ({start_timestamp}), end timetamps ({end_timestamp}).")
 
-    return {"start": start, "end": end}
+    return {"start": start_timestamp, "end": end_timestamp}
