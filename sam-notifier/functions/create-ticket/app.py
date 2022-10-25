@@ -102,10 +102,36 @@ def process_log_record(log_record, jira_project_key, alarm_name):
         }
     }
 
-    formatted = f"{alarm_name} ({log_record.get('eventID')}) \n\n"
+    formatted = f"Alarm Name: {alarm_name} \n"
+    formatted = f"Event  ID: {log_record.get('eventID')}) \n\n"
+
+    event_details = "Event Details \n"
+    user_details = "User Details \n"
+    additional_details = "Additional Details \n"
 
     for k, v in log_record.items():
-        formatted += f"{k}: {v if v else 'NO_VALUE_SPECIFIED'} \n"
+        if k in ("eventID", "eventVersion"):
+            # Skipping these Event entries
+            continue
+
+        if k in ("eventName", "errorMessage", "eventSource", "eventTime", "eventType", "eventCategory"):
+            event_details += f"{k}: {v if v else 'NO_VALUE_SPECIFIED'} \n"
+            continue
+
+        if k == "userIdentity":
+            for k, v in log_record.get("userIdentity").items():
+                user_details += f"{k}: {v if v else 'NO_VALUE_SPECIFIED'} \n"
+            continue
+
+        if k in ("sourceIPAddress", "userAgent", "recipientAccountId", "awsRegion"):
+            user_details += f"{k}: {v if v else 'NO_VALUE_SPECIFIED'} \n"
+            continue
+
+        additional_details += f"{k}: {v if v else 'NO_VALUE_SPECIFIED'} \n"
+
+    formatted += f"{event_details} \n"
+    formatted += f"{user_details} \n"
+    formatted += f"{additional_details} \n"
 
     issue_data["fields"]["description"] = formatted
     return issue_data
