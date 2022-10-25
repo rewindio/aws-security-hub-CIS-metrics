@@ -263,12 +263,14 @@
             },
             "Retry": [
                 {
-                    "ErrorEquals": [
-                        "States.TaskFailed"
-                    ],
+                    "ErrorEquals": ["AssertionError"],
                     "IntervalSeconds": 300,
-                    "MaxAttempts": 1,
-                    "BackoffRate": 1
+                    "MaxAttempts": 2
+                },
+                {
+                    "ErrorEquals": ["States.TaskFailed"],
+                    "IntervalSeconds": 300,
+                    "MaxAttempts": 1
                 }
             ],
             "Next": "LogProcessorFunction"

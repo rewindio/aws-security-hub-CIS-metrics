@@ -62,6 +62,9 @@ def lambda_handler(event, context):
     results = get_query_results(response.get("queryId"))
     logs = process_query_results(results)
 
+    # Raise AssertionError if CloudWatch Logs query returned zero logs
+    assert len(logs) >= 1
+
     return {
         "logs": logs
     }
