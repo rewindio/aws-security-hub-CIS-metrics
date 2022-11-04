@@ -129,8 +129,8 @@
             "Next": "LogQueryFunction",
             "ResultPath": "$.query",
             "Result": {
-                "string": "fields @timestamp, @message | sort @timestamp desc | filter errorCode == '*UnauthorizedOperation' or errorCode == 'AccessDenied*'",
-                "severity": "HIGH"
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter errorCode LIKE 'UnauthorizedOperation' or errorCode LIKE 'AccessDenied'",
+                "severity": "LOW"
             }
         },
         "CIS-Console Signin Without MFA": {
@@ -139,7 +139,7 @@
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName == 'ConsoleLogin' and responseElements.ConsoleLogin == 'Success' and additionalEventData.MFAUsed != 'Yes'",
-                "severity": "MEDIUM"
+                "severity": "HIGH"
             }
         },
         "CIS-Root Activity": {
@@ -184,7 +184,7 @@
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventSource == 'kms.amazonaws.com' and eventName in ['DisableKey', 'ScheduleKeyDeletion']",
-                "severity": "MEDIUM"
+                "severity": "LOW"
             }
         },
         "CIS-S3 Bucket Policy Changed": {
@@ -193,7 +193,7 @@
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventSource = 's3.amazonaws.com' and eventName in ['DeleteBucketCors', 'DeleteBucketLifecycle', 'DeleteBucketPolicy', 'DeleteBucketReplication', 'PutBucketAcl', 'PutBucketCors', 'PutBucketLifecycle', 'PutBucketPolicy', 'PutBucketReplication']",
-                "severity": "MEDIUM"
+                "severity": "LOW"
             }
         },
         "CIS-AWS Config Configuration has changed": {
@@ -202,7 +202,7 @@
             "ResultPath": "$.query",
             "Result": {
                 "string": "fields @timestamp, @message | sort @timestamp desc | filter eventSource = 'config.amazonaws.com' and eventName in ['DeleteDeliveryChannel', 'StopConfigurationRecorder', 'PutConfigurationRecorder', 'PutDeliveryChannel']",
-                "severity": "HIGH"
+                "severity": "LOW"
             }
         },
         "CIS-Security Groups Have Changed": {
@@ -210,7 +210,7 @@
             "Next": "LogQueryFunction",
             "ResultPath": "$.query",
             "Result": {
-                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventSource = 'config.amazonaws.com' and eventName in ['DeleteDeliveryChannel', 'StopConfigurationRecorder', 'PutConfigurationRecorder', 'PutDeliveryChannel']",
+                "string": "filter eventName in ['AuthorizeSecurityGroupIngress', 'AuthorizeSecurityGroupEgress', 'CreateSecurityGroup', 'DeleteSecurityGroup', 'RevokeSecurityGroupIngress', 'RevokeSecurityGroupEgress']",
                 "severity": "LOW"
             }
         },
@@ -263,12 +263,16 @@
             },
             "Retry": [
                 {
-                    "ErrorEquals": ["AssertionError"],
+                    "ErrorEquals": [
+                        "AssertionError"
+                    ],
                     "IntervalSeconds": 300,
                     "MaxAttempts": 2
                 },
                 {
-                    "ErrorEquals": ["States.TaskFailed"],
+                    "ErrorEquals": [
+                        "States.TaskFailed"
+                    ],
                     "IntervalSeconds": 300,
                     "MaxAttempts": 1
                 }
@@ -297,7 +301,18 @@
                     "BackoffRate": 1
                 }
             ],
-            "Next": "EventsMap"
+            "Next": "SeverityChoice"
+        },
+        "SeverityChoice": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.query.severity",
+                    "StringMatches": "LOW",
+                    "Next": "Severity is LOW"
+                }
+            ],
+            "Default": "EventsMap"
         },
         "EventsMap": {
             "Type": "Map",
@@ -327,6 +342,10 @@
             "Type": "Fail",
             "Error": "Improper Input Fail",
             "Cause": "Missing Alert Name"
+        },
+        "Severity is LOW": {
+            "Type": "Succeed",
+            "Comment": "Skipping Jira issue creation, as the severity is below threshold."
         }
     }
 }
