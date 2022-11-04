@@ -63,7 +63,7 @@ def lambda_handler(event, context):
     logs = process_query_results(results)
 
     # Raise AssertionError if CloudWatch Logs query returned zero logs
-    assert len(logs) >= 1
+    assert len(logs) >= 1, "CloudWatch Logs query did not return any entries."
 
     return {
         "logs": logs
