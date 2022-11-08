@@ -1,3 +1,8 @@
+r"""
+The ``log-query`` Lambda executes CloudWatch Log query and returns
+log Events assocaited with the CloudWatch Alarm.
+"""
+
 import time
 import logging
 import boto3
@@ -13,7 +18,7 @@ def get_query_results(query_id):
         queryId=query_id
     )
 
-    logger.info(f"Get Query Results: {response}")
+    logger.info("Get Query Results: %s", response)
 
     # Wait for the Query to complete
     while response.get("status") in ("Running", "Scheduled"):
@@ -22,16 +27,16 @@ def get_query_results(query_id):
             queryId=query_id
         )
         if response.get("status") == "Complete":
-            logger.info(f"Query results: {response}")
-            logger.info(f"Query statistics: {response.get('statistics')}")
+            logger.info("Query results: %s", response)
+            logger.info("Query statistics: %s", response.get('statistics'))
         else:
-            logger.error(f"CloudWatch Query failed. {response.get('status')}")
+            logger.error("CloudWatch Query failed. %s", response.get('status'))
     return response
 
 
 def process_query_results(results):
     log_entries = list()
-    logger.info(f"Process Query Results: {results}")
+    logger.info("Process Query Results: %s", results)
     for result in results.get("results"):
         for entry in result:
             if entry.get("field") == "@message":
@@ -41,12 +46,14 @@ def process_query_results(results):
 
 
 def lambda_handler(event, context):
+    logger.debug("Context: %s", context)
+
     log_group_name = event.get("CloudWatchLogsLogGroupName")
 
-    logger.info(f"StartTime: {event.get('epoch').get('start')}")
-    logger.info(f"EndTime: {event.get('epoch').get('end')}")
-    logger.info(f"QueryString: {event.get('query').get('string')}")
-    logger.info(f"LogGroupName: {log_group_name}")
+    logger.info("StartTime: %s", event.get('epoch').get('start'))
+    logger.info("EndTime: %s", event.get('epoch').get('end'))
+    logger.info("QueryString: %s", event.get('query').get('string'))
+    logger.info("LogGroupName: %s", log_group_name)
 
     response = client.start_query(
         logGroupName=log_group_name,
@@ -56,8 +63,8 @@ def lambda_handler(event, context):
         limit=10
     )
 
-    logger.info(f"Response: {response}")
-    logger.info(f"CloudWatch Logs QueryId: {response.get('queryId')}")
+    logger.info("Response: %s", response)
+    logger.info("CloudWatch Logs QueryId: %s", response.get('queryId'))
 
     results = get_query_results(response.get("queryId"))
     logs = process_query_results(results)

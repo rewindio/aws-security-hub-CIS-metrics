@@ -1,3 +1,8 @@
+r"""
+The ``create-ticket`` Lambda retrieves the Event details from the
+DynamoDB table and creates a Jira issue.
+"""
+
 import logging
 import json
 import requests
@@ -22,10 +27,10 @@ def get_secret(jira_auth_token_secret_arn):
         get_secret_value_response = client.get_secret_value(
             SecretId=jira_auth_token_secret_arn
         )
-    except ClientError as e:
+    except ClientError as err:
         logger.error(
-            f"Error, unable to access Secret '{jira_auth_token_secret_arn}'.")
-        logger.error(e)
+            "Error, unable to access Secret '%s'.", jira_auth_token_secret_arn)
+        logger.error(err)
 
     if 'SecretString' in get_secret_value_response:
         return get_secret_value_response['SecretString']
@@ -40,18 +45,18 @@ def get_jira_auth_header(jira_auth_token_secret_arn):
 
 
 def create_jira_issue(jira_url, headers, issue_data):
-    r = requests.post(f"{jira_url}/issue/", headers=headers,
-                      data=json.dumps(issue_data))
-    logger.info(f"Jira Response: {r} ({r.url})")
+    resp = requests.post(f"{jira_url}/issue/", headers=headers,
+                         data=json.dumps(issue_data), timeout=60)
+    logger.info("Jira Response: %s (%s)", resp, resp.url)
 
-    if r.status_code == 201 or r.status_code == requests.codes.ok:
-        ticket = r.json()
-        logger.info(f"Successfully created ticket: {ticket.get('key')}")
+    if resp.status_code == 201 or resp.status_code == requests.codes.ok: #pylint: disable=E1101
+        ticket = resp.json()
+        logger.info("Successfully created ticket: %s", ticket.get('key'))
         return ticket.get('key')
 
 
 def get_ddb_event(event_id, table):
-    logger.info(f"Get EventID: {event_id}, DynamoDB table: {table}")
+    logger.info("Get EventID: %s, DynamoDB table: %s", event_id, table)
     try:
         response = table.get_item(Key={'EventId': event_id})
     except ClientError as err:
@@ -66,7 +71,7 @@ def get_ddb_event(event_id, table):
 
 def update_ddb_event(event_id, ticket_id, table):
     logger.info(
-        f"Update EventID: {event_id}, Ticket: {ticket_id}, DynamoDB table: {table}")
+        "Update EventID: %s, Ticket: %s, DynamoDB table: %s", event_id, ticket_id, table)
     try:
         response = table.update_item(
             Key={'EventId': event_id},
@@ -87,7 +92,7 @@ def update_ddb_event(event_id, ticket_id, table):
 
 
 def process_log_record(log_record, jira_project_key, alarm_name):
-    logger.info(f"LogRecord ({type(log_record)}): {log_record}")
+    logger.info("LogRecord (%s): %s", type(log_record), log_record)
     issue_data = {
         "fields": {
             "project":
@@ -109,25 +114,28 @@ def process_log_record(log_record, jira_project_key, alarm_name):
     user_details = "User Details \n"
     additional_details = "Additional Details \n"
 
-    for k, v in log_record.items():
-        if k in ("eventID", "eventVersion"):
+    for key, val in log_record.items():
+        if key in ("eventID", "eventVersion"):
             # Skipping these Event entries
             continue
 
-        if k in ("eventName", "errorMessage", "eventSource", "eventTime", "eventType", "eventCategory"):
-            event_details += f"{k}: {v if v else 'NO_VALUE_SPECIFIED'} \n"
+        if key in (
+            "eventName", "errorMessage", "eventSource",
+            "eventTime", "eventType", "eventCategory"
+        ):
+            event_details += f"{key}: {val if val else 'NO_VALUE_SPECIFIED'} \n"
             continue
 
-        if k == "userIdentity":
-            for k, v in log_record.get("userIdentity").items():
-                user_details += f"{k}: {v if v else 'NO_VALUE_SPECIFIED'} \n"
+        if key == "userIdentity":
+            for key, val in log_record.get("userIdentity").items():
+                user_details += f"{key}: {val if val else 'NO_VALUE_SPECIFIED'} \n"
             continue
 
-        if k in ("sourceIPAddress", "userAgent", "recipientAccountId", "awsRegion"):
-            user_details += f"{k}: {v if v else 'NO_VALUE_SPECIFIED'} \n"
+        if key in ("sourceIPAddress", "userAgent", "recipientAccountId", "awsRegion"):
+            user_details += f"{key}: {val if val else 'NO_VALUE_SPECIFIED'} \n"
             continue
 
-        additional_details += f"{k}: {v if v else 'NO_VALUE_SPECIFIED'} \n"
+        additional_details += f"{key}: {val if val else 'NO_VALUE_SPECIFIED'} \n"
 
     formatted += f"{event_details} \n"
     formatted += f"{user_details} \n"
@@ -138,25 +146,27 @@ def process_log_record(log_record, jira_project_key, alarm_name):
 
 
 def lambda_handler(event, context):
+    logger.debug("Context: %s", context)
+
     table = dynamodb.Table(event.get("DDBAuditTableName"))
 
     jira_url = event.get("JiraUrl")
     jira_project_key = event.get("JiraProjectKey")
     jira_auth_token_secret_arn = event.get("JiraAuthTokenSecretArn")
 
-    logger.info(f"Event: {event}")
+    logger.info("Event: %s", event)
 
     alarm_name = event.get("alarmName", "AWS CIS Benchmark Alarm")
     ticket_id = None
 
     if event.get("EventId"):
         event_record = get_ddb_event(event.get("EventId"), table)
-        logger.info(f"Event record: {event_record}")
+        logger.info("Event record: %s", event_record)
 
         if event_record.get("LogRecord"):
             jira_issue_data = process_log_record(
                 event_record.get("LogRecord"), jira_project_key, alarm_name)
-            logger.info(f"Jira Issue Data payload: {jira_issue_data}")
+            logger.info("Jira Issue Data payload: %s", jira_issue_data)
             ticket_id = create_jira_issue(jira_url, get_jira_auth_header(
                 jira_auth_token_secret_arn), jira_issue_data)
             update_ddb_event(event.get("EventId"), ticket_id, table)
