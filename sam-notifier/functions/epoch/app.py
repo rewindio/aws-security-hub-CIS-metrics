@@ -25,7 +25,7 @@ def lambda_handler(event, context):
 
     logger.info("Event time: %s", alarm_time)
 
-    start_time = alarm_time - timedelta(minutes=30)
+    start_time = alarm_time - timedelta(minutes=10)
     start_timestamp = round(start_time.timestamp())
     end_time = datetime.datetime.now()
     end_timestamp = round(end_time.timestamp())
