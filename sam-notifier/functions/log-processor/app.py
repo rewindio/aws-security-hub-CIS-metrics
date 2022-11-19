@@ -27,6 +27,7 @@ def process_log_entry(event, table, alarm_type):
         table.put_item(
             Item={
                 'EventId': event.get("eventID"),
+                'EventTime': event.get("eventTime"),
                 'TicketId': None,
                 'LogRecord': event,
                 'AlarmType': alarm_type
