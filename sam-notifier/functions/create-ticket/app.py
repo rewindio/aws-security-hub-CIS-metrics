@@ -125,6 +125,7 @@ def process_log_record(log_record, jira_project_key, alarm_name):
     event_details = "Event Details \n"
     user_details = "User Details \n"
     additional_details = "Additional Details \n"
+    response_elements = "Response Elements \n"
 
     for key, val in log_record.items():
         if key in ("eventID", "eventVersion"):
@@ -151,11 +152,17 @@ def process_log_record(log_record, jira_project_key, alarm_name):
             user_details += f"{key}: {val if val else 'NO_VALUE_SPECIFIED'} \n"
             continue
 
+        if key == "responseElements":
+            for key, val in log_record.get("responseElements").items():
+                response_elements += f"{key}: {val if val else 'NO_VALUE_SPECIFIED'} \n"
+            continue
+
         additional_details += f"{key}: {val if val else 'NO_VALUE_SPECIFIED'} \n"
 
     formatted += f"{event_details} \n"
     formatted += f"{user_details} \n"
     formatted += f"{additional_details} \n"
+    formatted += f"{response_elements} \n"
 
     issue_data["fields"]["description"] = formatted
     return issue_data
