@@ -31,7 +31,8 @@ def lambda_handler(event, context):
     end_timestamp = round(end_time.timestamp())
 
     logger.info("Start time (%s), end time (%s).", start_time, end_time)
-    logger.info("Start timestamp (%s), end timetamps (%s).",
-                start_timestamp, end_timestamp)
+    logger.info(
+        "Start timestamp (%s), end timetamps (%s).", start_timestamp, end_timestamp
+    )
 
     return {"start": start_timestamp, "end": end_timestamp}

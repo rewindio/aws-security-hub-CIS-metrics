@@ -10,27 +10,23 @@ import boto3
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-client = boto3.client('logs')
+client = boto3.client("logs")
 
 
 def get_query_results(query_id):
-    response = client.get_query_results(
-        queryId=query_id
-    )
+    response = client.get_query_results(queryId=query_id)
 
     logger.info("Get Query Results: %s", response)
 
     # Wait for the Query to complete
     while response.get("status") in ("Running", "Scheduled"):
         time.sleep(5)
-        response = client.get_query_results(
-            queryId=query_id
-        )
+        response = client.get_query_results(queryId=query_id)
         if response.get("status") == "Complete":
             logger.info("Query results: %s", response)
-            logger.info("Query statistics: %s", response.get('statistics'))
+            logger.info("Query statistics: %s", response.get("statistics"))
         else:
-            logger.error("CloudWatch Query failed. %s", response.get('status'))
+            logger.error("CloudWatch Query failed. %s", response.get("status"))
     return response
 
 
@@ -50,9 +46,9 @@ def lambda_handler(event, context):
 
     log_group_name = event.get("CloudWatchLogsLogGroupName")
 
-    logger.info("StartTime: %s", event.get('epoch').get('start'))
-    logger.info("EndTime: %s", event.get('epoch').get('end'))
-    logger.info("QueryString: %s", event.get('query').get('string'))
+    logger.info("StartTime: %s", event.get("epoch").get("start"))
+    logger.info("EndTime: %s", event.get("epoch").get("end"))
+    logger.info("QueryString: %s", event.get("query").get("string"))
     logger.info("LogGroupName: %s", log_group_name)
 
     response = client.start_query(
@@ -60,11 +56,11 @@ def lambda_handler(event, context):
         startTime=event.get("epoch").get("start"),
         endTime=event.get("epoch").get("end"),
         queryString=event.get("query").get("string"),
-        limit=10
+        limit=10,
     )
 
     logger.info("Response: %s", response)
-    logger.info("CloudWatch Logs QueryId: %s", response.get('queryId'))
+    logger.info("CloudWatch Logs QueryId: %s", response.get("queryId"))
 
     results = get_query_results(response.get("queryId"))
     logs = process_query_results(results)
@@ -72,6 +68,4 @@ def lambda_handler(event, context):
     # Raise AssertionError if CloudWatch Logs query returned zero logs
     assert len(logs) >= 1, "CloudWatch Logs query did not return any entries."
 
-    return {
-        "logs": logs
-    }
+    return {"logs": logs}

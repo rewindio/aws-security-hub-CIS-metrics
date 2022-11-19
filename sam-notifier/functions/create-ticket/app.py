@@ -11,7 +11,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 
-dynamodb = boto3.resource('dynamodb')
+dynamodb = boto3.resource("dynamodb")
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -19,73 +19,78 @@ logger.setLevel(logging.INFO)
 
 def get_secret(jira_auth_token_secret_arn):
     session = boto3.session.Session()
-    client = session.client(
-        service_name='secretsmanager'
-    )
+    client = session.client(service_name="secretsmanager")
 
     try:
         get_secret_value_response = client.get_secret_value(
             SecretId=jira_auth_token_secret_arn
         )
     except ClientError as err:
-        logger.error(
-            "Error, unable to access Secret '%s'.", jira_auth_token_secret_arn)
+        logger.error("Error, unable to access Secret '%s'.", jira_auth_token_secret_arn)
         logger.error(err)
 
-    if 'SecretString' in get_secret_value_response:
-        return get_secret_value_response['SecretString']
+    if "SecretString" in get_secret_value_response:
+        return get_secret_value_response["SecretString"]
 
 
 def get_jira_auth_header(jira_auth_token_secret_arn):
     headers = {
         "Authorization": f"Basic {get_secret(jira_auth_token_secret_arn)}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
     return headers
 
 
 def create_jira_issue(jira_url, headers, issue_data):
-    resp = requests.post(f"{jira_url}/issue/", headers=headers,
-                         data=json.dumps(issue_data), timeout=60)
+    resp = requests.post(
+        f"{jira_url}/issue/", headers=headers, data=json.dumps(issue_data), timeout=60
+    )
     logger.info("Jira Response: %s (%s)", resp, resp.url)
 
-    if resp.status_code == 201 or resp.status_code == requests.codes.ok: #pylint: disable=E1101
+    if (
+        resp.status_code == 201 or resp.status_code == requests.codes.ok  # pylint: disable=E1101
+    ):
         ticket = resp.json()
-        logger.info("Successfully created ticket: %s", ticket.get('key'))
-        return ticket.get('key')
+        logger.info("Successfully created ticket: %s", ticket.get("key"))
+        return ticket.get("key")
 
 
 def get_ddb_event(event_id, table):
     logger.info("Get EventID: %s, DynamoDB table: %s", event_id, table)
     try:
-        response = table.get_item(Key={'EventId': event_id})
+        response = table.get_item(Key={"EventId": event_id})
     except ClientError as err:
         logger.error(
             "Couldn't get event %s from table %s. Here's why: %s: %s",
-            event_id, table.name,
-            err.response['Error']['Code'], err.response['Error']['Message'])
+            event_id,
+            table.name,
+            err.response["Error"]["Code"],
+            err.response["Error"]["Message"],
+        )
         raise
     else:
-        return response['Item']
+        return response["Item"]
 
 
 def update_ddb_event(event_id, ticket_id, table):
     logger.info(
-        "Update EventID: %s, Ticket: %s, DynamoDB table: %s", event_id, ticket_id, table)
+        "Update EventID: %s, Ticket: %s, DynamoDB table: %s", event_id, ticket_id, table
+    )
     try:
         response = table.update_item(
-            Key={'EventId': event_id},
-            UpdateExpression='SET TicketId=:newTicketId',
-            ExpressionAttributeValues={
-                ':newTicketId': ticket_id
-            },
-            ReturnValues="UPDATED_NEW"
+            Key={"EventId": event_id},
+            UpdateExpression="SET TicketId=:newTicketId",
+            ExpressionAttributeValues={":newTicketId": ticket_id},
+            ReturnValues="UPDATED_NEW",
         )
     except ClientError as err:
         logger.error(
             "Couldn't update event %s from table %s. Here's why: %s: %s",
-            ticket_id, table.name,
-            err.response['Error']['Code'], err.response['Error']['Message'])
+            ticket_id,
+            table.name,
+            err.response["Error"]["Code"],
+            err.response["Error"]["Message"],
+        )
         raise
     else:
         return response
@@ -95,15 +100,10 @@ def process_log_record(log_record, jira_project_key, alarm_name):
     logger.info("LogRecord (%s): %s", type(log_record), log_record)
     issue_data = {
         "fields": {
-            "project":
-            {
-                "key": jira_project_key
-            },
+            "project": {"key": jira_project_key},
             "summary": f"{alarm_name} ({log_record.get('eventID')})",
             "description": None,
-            "issuetype": {
-                "name": "Task"
-            }
+            "issuetype": {"name": "Task"},
         }
     }
 
@@ -120,8 +120,12 @@ def process_log_record(log_record, jira_project_key, alarm_name):
             continue
 
         if key in (
-            "eventName", "errorMessage", "eventSource",
-            "eventTime", "eventType", "eventCategory"
+            "eventName",
+            "errorMessage",
+            "eventSource",
+            "eventTime",
+            "eventType",
+            "eventCategory",
         ):
             event_details += f"{key}: {val if val else 'NO_VALUE_SPECIFIED'} \n"
             continue
@@ -165,12 +169,14 @@ def lambda_handler(event, context):
 
         if event_record.get("LogRecord"):
             jira_issue_data = process_log_record(
-                event_record.get("LogRecord"), jira_project_key, alarm_name)
+                event_record.get("LogRecord"), jira_project_key, alarm_name
+            )
             logger.info("Jira Issue Data payload: %s", jira_issue_data)
-            ticket_id = create_jira_issue(jira_url, get_jira_auth_header(
-                jira_auth_token_secret_arn), jira_issue_data)
+            ticket_id = create_jira_issue(
+                jira_url,
+                get_jira_auth_header(jira_auth_token_secret_arn),
+                jira_issue_data,
+            )
             update_ddb_event(event.get("EventId"), ticket_id, table)
 
-    return {
-        "TicketID": ticket_id
-    }
+    return {"TicketID": ticket_id}
