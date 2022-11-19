@@ -332,6 +332,22 @@
                     "CreateTicketFunction": {
                         "Type": "Task",
                         "Resource": "${CreateTicketFunctionArn}",
+                        "Retry": [
+                            {
+                                "ErrorEquals": [
+                                    "AssertionError"
+                                ],
+                                "IntervalSeconds": 300,
+                                "MaxAttempts": 2
+                            },
+                            {
+                                "ErrorEquals": [
+                                    "States.TaskFailed"
+                                ],
+                                "IntervalSeconds": 300,
+                                "MaxAttempts": 1
+                            }
+                        ],
                         "End": true
                     }
                 }

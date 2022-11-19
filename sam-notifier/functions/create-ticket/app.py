@@ -47,12 +47,24 @@ def create_jira_issue(jira_url, headers, issue_data):
     )
     logger.info("Jira Response: %s (%s)", resp, resp.url)
 
+    # Raise AssertionError if Atlassian API returns status code 429
+    assert resp.status_code != 429, "Atlassian API returned '429 Too Many Requests'."
+
     if (
-        resp.status_code == 201 or resp.status_code == requests.codes.ok  # pylint: disable=E1101
+        resp.status_code == 201
+        or resp.status_code == requests.codes.ok  # pylint: disable=E1101
     ):
         ticket = resp.json()
         logger.info("Successfully created ticket: %s", ticket.get("key"))
         return ticket.get("key")
+    else:
+        error_msg = (
+            "Atlassian API responded with (%s): %s",
+            resp.status_code,
+            resp.json(),
+        )
+        logger.error(error_msg)
+        raise Exception(error_msg)
 
 
 def get_ddb_event(event_id, table):
@@ -108,7 +120,7 @@ def process_log_record(log_record, jira_project_key, alarm_name):
     }
 
     formatted = f"Alarm Name: {alarm_name} \n"
-    formatted = f"Event  ID: {log_record.get('eventID')}) \n\n"
+    formatted = f"Event  ID: {log_record.get('eventID')} \n\n"
 
     event_details = "Event Details \n"
     user_details = "User Details \n"
