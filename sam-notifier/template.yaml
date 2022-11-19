@@ -4,6 +4,9 @@ Description: >
   SAM Template to create state machine for CIS Alarm notifer
 
 Parameters:
+  StateMachineName:
+    Type: String
+    Description: The name of the state machine
   LogGroupName:
     Type: String
     Description: Name of the CloudWatch Logs log group used CloudTrail
@@ -22,6 +25,7 @@ Resources:
   StateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
+      Name: !Ref StateMachineName
       DefinitionUri: statemachine/notifier.asl.json
       DefinitionSubstitutions:
         EpochFunctionArn: !GetAtt EpochFunction.Arn
