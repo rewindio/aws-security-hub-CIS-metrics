@@ -1,0 +1,367 @@
+{
+    "Comment": "A state machine for CIS Alarm notifer.",
+    "StartAt": "Validate Choice",
+    "States": {
+        "Validate Choice": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "And": [
+                        {
+                            "Variable": "$.detail.alarmName",
+                            "IsPresent": true
+                        }
+                    ],
+                    "Next": "EpochFunction",
+                    "Comment": "Alarm Name Found"
+                }
+            ],
+            "Default": "Improper Input Fail"
+        },
+        "EpochFunction": {
+            "Type": "Task",
+            "Resource": "${EpochFunctionArn}",
+            "InputPath": "$",
+            "ResultPath": "$.epoch",
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "States.TaskFailed"
+                    ],
+                    "IntervalSeconds": 10,
+                    "MaxAttempts": 1,
+                    "BackoffRate": 1
+                }
+            ],
+            "Next": "Event Handler Choice"
+        },
+        "Event Handler Choice": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-Unauthorized Activity Attempt",
+                    "Next": "CIS-Unauthorized Activity Attempt",
+                    "Comment": "CIS-Unauthorized Activity Attempt Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-Console Signin Without MFA",
+                    "Next": "CIS-Console Signin Without MFA",
+                    "Comment": "CIS-Console Signin Without MFA Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-Root Activity",
+                    "Next": "CIS-Root Activity",
+                    "Comment": "CIS-Root Activity Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-IAM Policy Changes",
+                    "Next": "CIS-IAM Policy Changes",
+                    "Comment": "CIS-IAM Policy Changes Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-Cloudtrail Config Changes",
+                    "Next": "CIS-Cloudtrail Config Changes",
+                    "Comment": "CIS-Cloudtrail Config Changes Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-Console Login Failures",
+                    "Next": "CIS-Console Login Failures",
+                    "Comment": "CIS-Console Login Failures Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-KMS Key Disabled or Scheduled for Deletion",
+                    "Next": "CIS-KMS Key Disabled or Scheduled for Deletion",
+                    "Comment": "CIS-KMS Key Disabled or Scheduled for Deletion Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-S3 Bucket Policy Changed",
+                    "Next": "CIS-S3 Bucket Policy Changed",
+                    "Comment": "CIS-S3 Bucket Policy Changed Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-AWS Config Configuration has changed",
+                    "Next": "CIS-AWS Config Configuration has changed",
+                    "Comment": "CIS-AWS Config Configuration has changed Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-Security Groups Have Changed",
+                    "Next": "CIS-Security Groups Have Changed",
+                    "Comment": "CIS-Security Groups Have Changed Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-NACLs Have Changed",
+                    "Next": "CIS-NACLs Have Changed",
+                    "Comment": "CIS-NACLs Have Changed Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-Network Gateways Have Changed",
+                    "Next": "CIS-Network Gateways Have Changed",
+                    "Comment": "CIS-Network Gateways Have Changed Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-Route Tables Have Changed",
+                    "Next": "CIS-Route Tables Have Changed",
+                    "Comment": "CIS-Route Tables Have Changed Alarm"
+                },
+                {
+                    "Variable": "$.detail.alarmName",
+                    "StringMatches": "CIS-VPC Has Changed",
+                    "Next": "CIS-VPC Has Changed",
+                    "Comment": "CIS-VPC Has Changed Alarm"
+                }
+            ]
+        },
+        "CIS-Unauthorized Activity Attempt": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter errorCode LIKE 'UnauthorizedOperation' or errorCode LIKE 'AccessDenied'",
+                "severity": "LOW"
+            }
+        },
+        "CIS-Console Signin Without MFA": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName == 'ConsoleLogin' and responseElements.ConsoleLogin == 'Success' and additionalEventData.MFAUsed != 'Yes'",
+                "severity": "HIGH"
+            }
+        },
+        "CIS-Root Activity": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter userIdentity.type == 'Root' and eventType != 'AwsServiceEvent'",
+                "severity": "HIGH"
+            }
+        },
+        "CIS-IAM Policy Changes": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['AttachGroupPolicy', 'AttachRolePolicy', 'AttachUserPolicy', 'CreatePolicy', 'CreatePolicyVersion', 'DeleteGroupPolicy', 'DeletePolicy', 'DeletePolicyVersion', 'DeleteRolePolicy', 'DeleteUserPolicy', 'DetachGroupPolicy', 'DetachRolePolicy', 'DetachUserPolicy', 'PutGroupPolicy', 'PutRolePolicy', 'PutUserPolicy']",
+                "severity": "LOW"
+            }
+        },
+        "CIS-Cloudtrail Config Changes": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['CreateTrail', 'DeleteTrail', 'StartLogging', 'StopLogging', 'UpdateTrail']",
+                "severity": "HIGH"
+            }
+        },
+        "CIS-Console Login Failures": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName == 'ConsoleLogin' and errorMessage == 'Failed authentication'",
+                "severity": "HIGH"
+            }
+        },
+        "CIS-KMS Key Disabled or Scheduled for Deletion": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventSource == 'kms.amazonaws.com' and eventName in ['DisableKey', 'ScheduleKeyDeletion']",
+                "severity": "LOW"
+            }
+        },
+        "CIS-S3 Bucket Policy Changed": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventSource = 's3.amazonaws.com' and eventName in ['DeleteBucketCors', 'DeleteBucketLifecycle', 'DeleteBucketPolicy', 'DeleteBucketReplication', 'PutBucketAcl', 'PutBucketCors', 'PutBucketLifecycle', 'PutBucketPolicy', 'PutBucketReplication']",
+                "severity": "LOW"
+            }
+        },
+        "CIS-AWS Config Configuration has changed": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventSource = 'config.amazonaws.com' and eventName in ['DeleteDeliveryChannel', 'StopConfigurationRecorder', 'PutConfigurationRecorder', 'PutDeliveryChannel']",
+                "severity": "LOW"
+            }
+        },
+        "CIS-Security Groups Have Changed": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "filter eventName in ['AuthorizeSecurityGroupIngress', 'AuthorizeSecurityGroupEgress', 'CreateSecurityGroup', 'DeleteSecurityGroup', 'RevokeSecurityGroupIngress', 'RevokeSecurityGroupEgress']",
+                "severity": "LOW"
+            }
+        },
+        "CIS-NACLs Have Changed": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['CreateNetworkAcl', 'CreateNetworkAclEntry', 'DeleteNetworkAcl', 'DeleteNetworkAclEntry', 'ReplaceNetworkAclEntry', 'ReplaceNetworkAclAssociation']",
+                "severity": "LOW"
+            }
+        },
+        "CIS-Network Gateways Have Changed": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['AttachInternetGateway', 'CreateCustomerGateway', 'CreateInternetGateway', 'DeleteCustomerGateway', 'DeleteInternetGateway', 'DetachInternetGateway']",
+                "severity": "LOW"
+            }
+        },
+        "CIS-Route Tables Have Changed": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['CreateRoute', 'CreateRouteTable', 'DeleteRoute', 'DeleteRouteTable', 'DisassociateRouteTable', 'ReplaceRoute', 'ReplaceRouteTableAssociation']",
+                "severity": "LOW"
+            }
+        },
+        "CIS-VPC Has Changed": {
+            "Type": "Pass",
+            "Next": "LogQueryFunction",
+            "ResultPath": "$.query",
+            "Result": {
+                "string": "fields @timestamp, @message | sort @timestamp desc | filter eventName in ['AcceptVpcPeeringConnection', 'AttachClassicLinkVpc', 'CreateVpc', 'CreateVpcPeeringConnection', 'DeleteVpc', 'DeleteVpcPeeringConnection', 'DetachClassicLinkVpc', 'DisableVpcClassicLink', 'EnableVpcClassicLink', 'ModifyVpcAttribute', 'RejectVpcPeeringConnection']",
+                "severity": "LOW"
+            }
+        },
+        "LogQueryFunction": {
+            "Type": "Task",
+            "Resource": "${LogQueryFunctionArn}",
+            "InputPath": "$",
+            "ResultPath": "$.logs",
+            "Parameters": {
+                "CloudWatchLogsLogGroupName": "${LogGroupName}",
+                "alarmName.$": "$.detail.alarmName",
+                "epoch.$": "$.epoch",
+                "query.$": "$.query"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "AssertionError"
+                    ],
+                    "IntervalSeconds": 300,
+                    "MaxAttempts": 2
+                },
+                {
+                    "ErrorEquals": [
+                        "States.TaskFailed"
+                    ],
+                    "IntervalSeconds": 300,
+                    "MaxAttempts": 1
+                }
+            ],
+            "Next": "LogProcessorFunction"
+        },
+        "LogProcessorFunction": {
+            "Type": "Task",
+            "Resource": "${LogProcessorFunctionArn}",
+            "InputPath": "$",
+            "ResultPath": "$.events",
+            "Parameters": {
+                "DDBAuditTableName": "${DDBAuditTableName}",
+                "alarmName.$": "$.detail.alarmName",
+                "epoch.$": "$.epoch",
+                "query.$": "$.query",
+                "logs.$": "$.logs"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "States.TaskFailed"
+                    ],
+                    "IntervalSeconds": 300,
+                    "MaxAttempts": 1,
+                    "BackoffRate": 1
+                }
+            ],
+            "Next": "SeverityChoice"
+        },
+        "SeverityChoice": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.query.severity",
+                    "StringMatches": "LOW",
+                    "Next": "Severity is LOW"
+                }
+            ],
+            "Default": "EventsMap"
+        },
+        "EventsMap": {
+            "Type": "Map",
+            "InputPath": "$",
+            "ItemsPath": "$.events.events",
+            "Parameters": {
+                "DDBAuditTableName": "${DDBAuditTableName}",
+                "JiraUrl": "${JiraUrl}",
+                "JiraProjectKey": "${JiraProjectKey}",
+                "JiraAuthTokenSecretArn": "${JiraAuthTokenSecretArn}",
+                "alarmName.$": "$.detail.alarmName",
+                "EventId.$": "$$.Map.Item.Value"
+            },
+            "Iterator": {
+                "StartAt": "CreateTicketFunction",
+                "States": {
+                    "CreateTicketFunction": {
+                        "Type": "Task",
+                        "Resource": "${CreateTicketFunctionArn}",
+                        "Retry": [
+                            {
+                                "ErrorEquals": [
+                                    "AssertionError"
+                                ],
+                                "IntervalSeconds": 300,
+                                "MaxAttempts": 2
+                            },
+                            {
+                                "ErrorEquals": [
+                                    "States.TaskFailed"
+                                ],
+                                "IntervalSeconds": 300,
+                                "MaxAttempts": 1
+                            }
+                        ],
+                        "End": true
+                    }
+                }
+            },
+            "End": true
+        },
+        "Improper Input Fail": {
+            "Type": "Fail",
+            "Error": "Improper Input Fail",
+            "Cause": "Missing Alert Name"
+        },
+        "Severity is LOW": {
+            "Type": "Succeed",
+            "Comment": "Skipping Jira issue creation, as the severity is below threshold."
+        }
+    }
+}

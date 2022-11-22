@@ -1,0 +1,174 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SAM Template to create state machine for CIS Alarm notifer
+
+Parameters:
+  StateMachineName:
+    Type: String
+    Description: The name of the state machine
+  LogGroupName:
+    Type: String
+    Description: Name of the CloudWatch Logs log group used CloudTrail
+  JiraUrl:
+    Type: String
+    Description: Jira REST API URL (ex. https://<org-name>.atlassian.net/rest/api/2)
+  JiraProjectKey:
+    Type: String
+    Description: Jira project key
+  JiraAuthToken:
+    Type: String
+    Description: Jira Basic Auth token (https://developer.atlassian.com/cloud/jira/platform/basic-auth-for-rest-apis/)
+    NoEcho: true
+
+Resources:
+  StateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Ref StateMachineName
+      DefinitionUri: statemachine/notifier.asl.json
+      DefinitionSubstitutions:
+        EpochFunctionArn: !GetAtt EpochFunction.Arn
+        LogQueryFunctionArn: !GetAtt LogQueryFunction.Arn
+        LogProcessorFunctionArn: !GetAtt LogProcessorFunction.Arn
+        CreateTicketFunctionArn: !GetAtt CreateTicketFunction.Arn
+        LogGroupName: !Ref LogGroupName
+        DDBAuditTableName: !Ref AuditTable
+        JiraUrl: !Ref JiraUrl
+        JiraProjectKey: !Ref JiraProjectKey
+        JiraAuthTokenSecretArn: !Ref JiraAuthTokenSecret
+      Events:
+        EBRule:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.cloudwatch
+              detail:
+                state:
+                  value:
+                    - ALARM
+                alarmName:
+                  - CIS-Unauthorized Activity Attempt
+                  - CIS-Console Signin Without MFA
+                  - CIS-Root Activity
+                  - CIS-IAM Policy Changes
+                  - CIS-Cloudtrail Config Changes
+                  - CIS-Console Login Failures
+                  - CIS-KMS Key Disabled or Scheduled for Deletion
+                  - CIS-S3 Bucket Policy Changed
+                  - CIS-AWS Config Configuration has changed
+                  - CIS-Security Groups Have Changed
+                  - CIS-NACLs Have Changed
+                  - CIS-Network Gateways Have Changed
+                  - CIS-Route Tables Have Changed
+                  - CIS-VPC Has Changed
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref EpochFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref LogQueryFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref LogProcessorFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref CreateTicketFunction
+
+  EpochFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/epoch/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 5
+      Architectures:
+        - x86_64
+
+  LogQueryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/log-query/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 300
+      Architectures:
+        - x86_64
+
+  LogProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/log-processor/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 300
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref AuditTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref AuditTable
+
+  CreateTicketFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/create-ticket/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 300
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref AuditTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref AuditTable
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref JiraAuthTokenSecret
+
+  AuditTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: EventId
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  JiraAuthTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Description: String
+      SecretString: !Ref JiraAuthToken
+
+  CloudWatchLogsPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: CloudWatchLogsPolicyForSamNotifier
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CloudWatchLogsPolicy
+            Effect: Allow
+            Action:
+              - 'logs:Describe*'
+              - 'logs:Get*'
+              - 'logs:List*'
+              - 'logs:StartQuery'
+              - 'logs:StopQuery'
+              - 'logs:TestMetricFilter'
+              - 'logs:FilterLogEvents'
+            Resource:
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupName}:*'
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group::log-stream:*'
+      Roles:
+        - !Ref StateMachineRole
+        - !Ref LogQueryFunctionRole
+
+Outputs:
+  StateMachineArn:
+    Description: "State machine ARN"
+    Value: !Ref StateMachine
+  JiraApiTokenSecret:
+    Description: "Secrets Manager Secret with value of JiraAuthToken"
+    Value: !Ref JiraAuthTokenSecret
