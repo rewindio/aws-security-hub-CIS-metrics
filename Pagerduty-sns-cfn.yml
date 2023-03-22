@@ -1,0 +1,31 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS Simple Notification Service (SNS) for PagerDuty Integration
+Parameters:
+  PagerdutyNotificationTopicName:
+    Description:  Replace Default value with the name of the topic you want to create
+    Default: 'Pagerduty_Integration_Topic'
+    Type: String
+  PagerdutyIntegrationURL:
+    Description:  Replace Default value with the Pagerduty Integration URL from your service
+    Default: 'Example-https://events.pagerduty.com/integration/123a45b678912300c0012345d60df012/enqueue'
+    Type: String
+Resources:
+#===============================================================================================================================
+# Amazon CloudWatch Integration Guide | PagerDuty
+# https://support.pagerduty.com/docs/amazon-cloudwatch-integration-guide
+#===============================================================================================================================
+
+  PagerdutySNSTopic:
+    Type: AWS::SNS::Topic
+    Properties: 
+      DisplayName: !Ref PagerdutyNotificationTopicName
+      FifoTopic: false
+      TopicName: !Ref PagerdutyNotificationTopicName
+
+  PagerdutySNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties: 
+      Endpoint: !Ref PagerdutyIntegrationURL
+      Protocol: https
+      TopicArn: !Ref PagerdutySNSTopic
