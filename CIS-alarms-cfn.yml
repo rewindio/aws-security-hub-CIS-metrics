@@ -82,6 +82,7 @@ Resources:
       FilterPattern: |-
         {
           ($.eventName = "ConsoleLogin") &&
+          ($.responseElements.ConsoleLogin !== "Success") &&
           ($.additionalEventData.MFAUsed != "Yes")
         }
       MetricTransformations:
