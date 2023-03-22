@@ -30,8 +30,8 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref AlarmNotificationTopicARN
+      # AlarmActions:
+      #   - !Ref AlarmNotificationTopicARN
       ComparisonOperator: GreaterThanOrEqualToThreshold
   UnauthorizedApiCallsFilter:
     Type: AWS::Logs::MetricFilter
@@ -160,8 +160,8 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref AlarmNotificationTopicARN
+      # AlarmActions:
+      #   - !Ref AlarmNotificationTopicARN
       ComparisonOperator: GreaterThanOrEqualToThreshold
   IAMPolicyChangesFilter:
     Type: AWS::Logs::MetricFilter
@@ -308,8 +308,8 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref AlarmNotificationTopicARN
+      # AlarmActions:
+      #   - !Ref AlarmNotificationTopicARN
       ComparisonOperator: GreaterThanOrEqualToThreshold
   DisabledOrDeletedCmksFilter:
     Type: AWS::Logs::MetricFilter
@@ -350,8 +350,8 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref AlarmNotificationTopicARN
+      # AlarmActions:
+      #   - !Ref AlarmNotificationTopicARN
       ComparisonOperator: GreaterThanOrEqualToThreshold
   S3BucketPolicyChangeFilter:
     Type: AWS::Logs::MetricFilter
@@ -400,8 +400,8 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref AlarmNotificationTopicARN
+      # AlarmActions:
+      #   - !Ref AlarmNotificationTopicARN
       ComparisonOperator: GreaterThanOrEqualToThreshold
   AWSConfigConfigurationChangeFilter:
     Type: AWS::Logs::MetricFilter
@@ -445,8 +445,8 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref AlarmNotificationTopicARN
+      # AlarmActions:
+      #   - !Ref AlarmNotificationTopicARN
       ComparisonOperator: GreaterThanOrEqualToThreshold
   SecurityGroupChangeFilter:
     Type: AWS::Logs::MetricFilter
@@ -491,8 +491,8 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref AlarmNotificationTopicARN
+      # AlarmActions:
+      #   - !Ref AlarmNotificationTopicARN
       ComparisonOperator: GreaterThanOrEqualToThreshold
   NACLChangeFilter:
     Type: AWS::Logs::MetricFilter
@@ -537,8 +537,8 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref AlarmNotificationTopicARN
+      # AlarmActions:
+      #   - !Ref AlarmNotificationTopicARN
       ComparisonOperator: GreaterThanOrEqualToThreshold
   NetworkGatewayChangeFilter:
     Type: AWS::Logs::MetricFilter
@@ -583,8 +583,8 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref AlarmNotificationTopicARN
+      # AlarmActions:
+      #   - !Ref AlarmNotificationTopicARN
       ComparisonOperator: GreaterThanOrEqualToThreshold
   RouteTableChangeFilter:
     Type: AWS::Logs::MetricFilter
@@ -630,8 +630,8 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref AlarmNotificationTopicARN
+      # AlarmActions:
+      #   - !Ref AlarmNotificationTopicARN
       ComparisonOperator: GreaterThanOrEqualToThreshold
   VPCChangeFilter:
     Type: AWS::Logs::MetricFilter
